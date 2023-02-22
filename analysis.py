@@ -233,6 +233,7 @@ class Analysis:
         x = plotData[:,0]   # store data from all rows in first column in x
         y = plotData[:,1]   # store data from all rows in second column in y 
 
+        plt.figure(figsize=(6,5))
         plt.scatter(plotData[:,0], plotData[:,1])    # plot scatter plot with x and y
         plt.title(title)    # create title with title passed
         plt.xlabel(ind_var) # set x label to ind_var
