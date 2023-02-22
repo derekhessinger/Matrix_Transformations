@@ -54,8 +54,10 @@ class Transformation(analysis.Analysis):
 
         new_data = self.orig.select_data(headers)   # select data from headers
         dictionary = {} # create dictionary to hold header2col indices
-        for idx, header in enumerate(headers):
-            dictionary[header] = idx
+
+        for idx, header in enumerate(headers): # loop through each header/index in headers
+            dictionary[header] = idx    # map the index to header
+
         self.data = data.Data(data=new_data,headers=headers,header2col=dictionary) # create new data object with relevant info
 
     def get_data_homogeneous(self):
