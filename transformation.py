@@ -53,10 +53,10 @@ class Transformation(analysis.Analysis):
         '''
 
         new_data = self.orig.select_data(headers)   # select data from headers
-        header2col = {}
+        dictionary = {} # create dictionary to hold header2col indices
         for idx, header in enumerate(headers):
-            header2col[header] = idx
-        self.data = data.Data(data=new_data,headers=headers,header2col=header2col) # create new data object with relevant info
+            dictionary[header] = idx
+        self.data = data.Data(data=new_data,headers=headers,header2col=dictionary) # create new data object with relevant info
 
     def get_data_homogeneous(self):
         '''Helper method to get a version of the projected data array with an added homogeneous
@@ -70,8 +70,8 @@ class Transformation(analysis.Analysis):
             [3.3, 5.0, 2.0], this sample would become [3.3, 5.0, 2.0, 1] in the returned array.
         '''
 
-        ones = np.ones((self.data.get_num_samples(), 1))
-        newArr = np.hstack((self.data.data, ones))
+        ones = np.ones((self.data.get_num_samples(), 1))    # create np array of ones
+        newArr = np.hstack((self.data.data, ones))  # stack array onto data to add homogeneous column
         return newArr
 
     def translation_matrix(self, magnitudes):
@@ -92,11 +92,11 @@ class Transformation(analysis.Analysis):
         translation!
         '''
 
-        dims = self.data.get_num_dims()
-        matrix = np.eye(dims+1, dims+1)
+        dims = self.data.get_num_dims() # get the number of variables
+        matrix = np.eye(dims+1, dims+1) # create a matrix to size (m+1, m+1)
 
-        for i in range(len(magnitudes)):
-            matrix[i,dims] = magnitudes[i]
+        for i in range(len(magnitudes)):    # loop through magnitudes
+            matrix[i,dims] = magnitudes[i]  # append matrix to insert translation values
         return matrix
 
     def scale_matrix(self, magnitudes):
@@ -115,11 +115,11 @@ class Transformation(analysis.Analysis):
         NOTE: This method just creates the scaling matrix. It does NOT actually PERFORM the scaling!
         '''
 
-        dims = self.data.get_num_dims()
-        matrix = np.eye(dims+1, dims+1)
+        dims = self.data.get_num_dims() # get the number of variables
+        matrix = np.eye(dims+1, dims+1) # create a matrix to size (m+1, m+1)
 
-        for i in range(len(magnitudes)):
-            matrix[i,i] = magnitudes[i]
+        for i in range(len(magnitudes)): # loop through magnitudes
+            matrix[i,i] = magnitudes[i] # append matrix to add scale values
 
         return matrix
 
