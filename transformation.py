@@ -189,7 +189,7 @@ class Transformation(analysis.Analysis):
         return result
         
 
-    def transform(self, C):
+    def transform(self, C): # fix float values in result
         '''Transforms the PROJECTED dataset by applying the homogeneous transformation matrix `C`.
 
         Parameters:
@@ -209,7 +209,18 @@ class Transformation(analysis.Analysis):
         transformed in this method). NOTE: The updated `self.data` SHOULD NOT have a homogenous
         coordinate!
         '''
-        pass
+
+        headers = self.data.get_headers()   # get headers
+
+        cMatrix = C
+        ogData = self.get_data_homogeneous()    # add homogeneous row to data
+        ogData = ogData.T   # transpose data
+        result = (cMatrix@ogData).T # compute matrix multiplication
+        result = result[:, 0:-1]    # remove homogeneous row
+
+        self.data = data.Data(data=result,headers=headers,header2col=self.data.get_mappings()) # create new data object with relevant info
+
+        return result
 
     def normalize_together(self):
         '''Normalize all variables in the projected dataset together by translating the global minimum
@@ -224,7 +235,36 @@ class Transformation(analysis.Analysis):
         NOTE: Given the goal of this project, for full credit you should implement the normalization
         using matrix multiplications (matrix transformations).
         '''
-        pass
+
+        dims = self.data.get_num_dims() # get dims of data
+        transMatrix = np.eye(dims+1, dims+1) # create a transformation matrix to size (dims+1, dims+1)
+        headers = self.data.get_headers()
+
+        minArr = self.min(headers) # find global min
+        gMin = min(minArr)
+        maxArr = self.min(headers) # find global max
+        gMax = max(maxArr)
+        diff = gMax - gMin # find difference
+
+        tMag = [] # magnitude for translation
+        sMag = [] # magnitude for scale
+
+        for i in range(dims):
+
+            tMag.append(-gMin)
+            sMag.append(1/diff)
+
+
+        transMatrix = self.translation_matrix(tMag)
+        scaleMatrix = self.scale_matrix(sMag)
+
+        cMatrix = transMatrix@scaleMatrix
+
+        result = self.transform(cMatrix)
+        
+        self.data = data.Data(headers=headers, data=result, header2col=self.data.get_mappings())
+
+        return result
 
     def normalize_separately(self):
         '''Normalize each variable separately by translating its local minimum to zero and scaling
