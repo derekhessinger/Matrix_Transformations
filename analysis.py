@@ -234,7 +234,7 @@ class Analysis:
         y = plotData[:,1]   # store data from all rows in second column in y 
 
         plt.figure(figsize=(6,5))
-        plt.scatter(plotData[:,0], plotData[:,1])    # plot scatter plot with x and y
+        plt.scatter(plotData[:,0], plotData[:,1], marker=".")    # plot scatter plot with x and y
         plt.title(title)    # create title with title passed
         plt.xlabel(ind_var) # set x label to ind_var
         plt.ylabel(dep_var) # set y label to dep_var
@@ -260,18 +260,6 @@ class Analysis:
             1st item returned by plt.subplots
         axes. ndarray of AxesSubplot objects. shape=(len(data_vars), len(data_vars))
             2nd item returned by plt.subplots
-
-        TODO:
-        - Make the len(data_vars) x len(data_vars) grid of scatterplots
-        - The y axis of the first column should be labeled with the appropriate variable being
-        plotted there.
-        - The x axis of the last row should be labeled with the appropriate variable being plotted
-        there.
-        - There should be no other axis or tick labels (it looks too cluttered otherwise!)
-
-        Tip: Check out the sharex and sharey keyword arguments of plt.subplots.
-        Because variables may have different ranges, pair plot columns usually share the same
-        x axis and rows usually share the same y axis.
         '''
 
         fig, axes = plt.subplots(len(data_vars), len(data_vars), sharex='col', sharey='row', figsize = fig_sz) # create subplots
