@@ -45,11 +45,6 @@ class Transformation(analysis.Analysis):
                 'cs251' becomes the 'z' variable.
             The length of the list matches the number of dimensions onto which the dataset is
             projected — having 'y' and 'z' variables is optional.
-
-        TODO:
-        - Create a new `Data` object that you assign to `self.data` (project data onto the `headers`
-        variables). Determine and fill in 'valid' values for all the `Data` constructor
-        keyword arguments (except you dont need `filepath` because it is not relevant here).
         '''
 
         new_data = self.orig.select_data(headers)   # select data from headers
@@ -167,13 +162,6 @@ class Transformation(analysis.Analysis):
         -----------
         ndarray. shape=(N, num_proj_vars). The scaled data (with all variables in the projected).
             dataset. NOTE: There should be NO homogenous coordinate!
-
-        TODO:
-        - Use matrix multiplication to scale the projected dataset, as advertised above.
-        - Update `self.data` with a NEW Data object with the SAME `headers` and `header2col`
-        dictionary as the current `self.data`, but DIFFERENT data (set to the data you
-        transformed in this method). NOTE: The updated `self.data` SHOULD NOT have a
-        homogenous coordinate!
         '''
 
         sMatrix = self.scale_matrix(magnitudes) # make transformation matrix
@@ -189,7 +177,7 @@ class Transformation(analysis.Analysis):
         return result
         
 
-    def transform(self, C): # fix float values in result
+    def transform(self, C): #TODO: fix float values in result
         '''Transforms the PROJECTED dataset by applying the homogeneous transformation matrix `C`.
 
         Parameters:
@@ -200,14 +188,6 @@ class Transformation(analysis.Analysis):
         Returns:
         -----------
         ndarray. shape=(N, num_proj_vars). The projected dataset after it has been transformed by `C`
-
-        TODO:
-        - Use matrix multiplication to apply the compound transformation matix `C` to the projected
-        dataset.
-        - Update `self.data` with a NEW Data object with the SAME `headers` and `header2col`
-        dictionary as the current `self.data`, but DIFFERENT data (set to the data you
-        transformed in this method). NOTE: The updated `self.data` SHOULD NOT have a homogenous
-        coordinate!
         '''
 
         headers = self.data.get_headers()   # get headers
@@ -237,7 +217,6 @@ class Transformation(analysis.Analysis):
         '''
 
         dims = self.data.get_num_dims() # get dims of data
-        transMatrix = np.eye(dims+1, dims+1) # create a transformation matrix to size (dims+1, dims+1)
         headers = self.data.get_headers()
 
         minArr = self.min(headers) # find global min
@@ -249,18 +228,17 @@ class Transformation(analysis.Analysis):
         tMag = [] # magnitude for translation
         sMag = [] # magnitude for scale
 
-        for i in range(dims):
+        for i in range(dims):   # for each variable
 
-            tMag.append(-gMin)
-            sMag.append(1/diff)
+            tMag.append(-gMin)  # create list of global min
+            sMag.append(1/diff) # create list of 1/diff
 
+        transMatrix = self.translation_matrix(tMag) # create translation matrix with translation magnitudes
+        scaleMatrix = self.scale_matrix(sMag)   # create scale matrix with scale magnitudes
 
-        transMatrix = self.translation_matrix(tMag)
-        scaleMatrix = self.scale_matrix(sMag)
+        cMatrix = transMatrix@scaleMatrix   # create transformation matrix
 
-        cMatrix = transMatrix@scaleMatrix
-
-        result = self.transform(cMatrix)
+        result = self.transform(cMatrix)   # normalize the matrix
         
         self.data = data.Data(headers=headers, data=result, header2col=self.data.get_mappings())
 
@@ -279,7 +257,28 @@ class Transformation(analysis.Analysis):
         NOTE: Given the goal of this project, for full credit you should implement the normalization
         using matrix multiplications (matrix transformations).
         '''
-        pass
+        headers = self.data.get_headers() # get headers
+        min = self.min(headers) # find min of each variable column
+        max = self.max(headers) # find max of each variable coloumn
+        diff = max-min
+
+        tMag = []
+        sMag = []
+
+        for i in range(len(headers)):  
+            tMag.append(-min[i])    # add minimums to list
+            sMag.append(1/diff[i])     # add diffs to list
+
+        transMatrix = self.translation_matrix(tMag) # create translation matrix
+        scaleMatrix = self.scale_matrix(sMag)   # create scale matrix
+
+        cMatrix = transMatrix@scaleMatrix # compute transformation matrix
+
+        result = self.transform(cMatrix)
+
+        self.data = data.Data(headers=headers, data=result, header2col=self.data.get_mappings())
+        
+        return result
 
     def rotation_matrix_3d(self, header, degrees):
         '''Make an 3-D homogeneous rotation matrix for rotating the projected data
@@ -296,9 +295,32 @@ class Transformation(analysis.Analysis):
 
         NOTE: This method just creates the rotation matrix. It does NOT actually PERFORM the rotation!
         '''
-        pass
+        homog = self.get_data_homogeneous() # get a homogeneous array of data
+        rotate = np.eye(homog.shape[1], homog.shape[1]) # create an identity matrix for rotation matrix of correct size
 
-    def rotate_3d(self, header, degrees):
+        radians = degrees * (np.pi/180) # compute the degrees in radians
+
+        headers = self.data.get_headers()   # get headers from projected data
+
+        if headers.index(header) == 0:  # if the data variable is the "x" coordinate, create rotation matrix about x
+            rotate[1,1] = np.cos(radians)
+            rotate[1,2] = -(np.sin(radians))
+            rotate[2,1] = np.sin(radians)
+            rotate[2,2] = np.cos(radians)
+        elif headers.index(header) == 1:    # if the data variable is the "y" coordinate, create rotation matrix about y
+            rotate[0,0] = np.cos(radians)
+            rotate[0,2] = np.sin(radians)
+            rotate[2,0] = -(np.sin(radians))
+            rotate[2,2] = np.cos(radians)
+        elif headers.index(header) == 2:    # if the data variable is the "z" coordinate, create rotation matrix about z
+            rotate[0,0] = np.cos(radians)
+            rotate[0,1] = -(np.sin(radians))
+            rotate[1,0] = np.sin(radians)
+            rotate[1,1] = np.cos(radians)
+        
+        return rotate
+
+    def rotate_3d(self, header, degrees):   #TODO: fix long float returned
         '''Rotates the projected data about the variable `header` by the angle (in degrees)
         `degrees`.
 
@@ -319,7 +341,14 @@ class Transformation(analysis.Analysis):
         transformed in this method). NOTE: The updated `self.data` SHOULD NOT have a
         homogenous coordinate!
         '''
-        pass
+
+        rMatrix = self.rotation_matrix_3d(header, degrees)  # create rotation matrix
+
+        rotated = self.transform(rMatrix)   # transform data with rotation matrix
+
+        self.data = data.Data(headers=self.data.get_headers(), data=rotated, header2col=self.data.get_mappings())   # reassign values
+        
+        return rotated
 
     def scatter_color(self, ind_var, dep_var, c_var, title=None):
         '''Creates a 2D scatter plot with a color scale representing the 3rd dimension.
