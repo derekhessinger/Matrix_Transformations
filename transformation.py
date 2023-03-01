@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import palettable
 import analysis
 import data
+from scipy import linalg
 
 
 
@@ -211,9 +212,6 @@ class Transformation(analysis.Analysis):
         Returns:
         -----------
         ndarray. shape=(N, num_proj_vars). The normalized version of the projected dataset.
-
-        NOTE: Given the goal of this project, for full credit you should implement the normalization
-        using matrix multiplications (matrix transformations).
         '''
 
         dims = self.data.get_num_dims() # get dims of data
@@ -221,7 +219,7 @@ class Transformation(analysis.Analysis):
 
         minArr = self.min(headers) # find global min
         gMin = min(minArr)
-        maxArr = self.min(headers) # find global max
+        maxArr = self.max(headers) # find global max
         gMax = max(maxArr)
         diff = gMax - gMin # find difference
 
@@ -236,9 +234,10 @@ class Transformation(analysis.Analysis):
         transMatrix = self.translation_matrix(tMag) # create translation matrix with translation magnitudes
         scaleMatrix = self.scale_matrix(sMag)   # create scale matrix with scale magnitudes
 
-        cMatrix = transMatrix@scaleMatrix   # create transformation matrix
+        cMatrix = np.matmul(scaleMatrix,transMatrix)   # create transformation matrix
 
         result = self.transform(cMatrix)   # normalize the matrix
+
         
         self.data = data.Data(headers=headers, data=result, header2col=self.data.get_mappings())
 
@@ -253,9 +252,6 @@ class Transformation(analysis.Analysis):
         Returns:
         -----------
         ndarray. shape=(N, num_proj_vars). The normalized version of the projected dataset.
-
-        NOTE: Given the goal of this project, for full credit you should implement the normalization
-        using matrix multiplications (matrix transformations).
         '''
         headers = self.data.get_headers() # get headers
         min = self.min(headers) # find min of each variable column
@@ -272,7 +268,7 @@ class Transformation(analysis.Analysis):
         transMatrix = self.translation_matrix(tMag) # create translation matrix
         scaleMatrix = self.scale_matrix(sMag)   # create scale matrix
 
-        cMatrix = transMatrix@scaleMatrix # compute transformation matrix
+        cMatrix = scaleMatrix@transMatrix # compute transformation matrix
 
         result = self.transform(cMatrix)
 
@@ -333,13 +329,6 @@ class Transformation(analysis.Analysis):
         -----------
         ndarray. shape=(N, num_proj_vars). The rotated data (with all variables in the projected).
             dataset. NOTE: There should be NO homogenous coordinate!
-
-        TODO:
-        - Use matrix multiplication to rotate the projected dataset, as advertised above.
-        - Update `self.data` with a NEW Data object with the SAME `headers` and `header2col`
-        dictionary as the current `self.data`, but DIFFERENT data (set to the data you
-        transformed in this method). NOTE: The updated `self.data` SHOULD NOT have a
-        homogenous coordinate!
         '''
 
         rMatrix = self.rotation_matrix_3d(header, degrees)  # create rotation matrix
@@ -358,8 +347,6 @@ class Transformation(analysis.Analysis):
         ind_var: str. Header of the variable that will be plotted along the X axis.
         dep_var: Header of the variable that will be plotted along the Y axis.
         c_var: Header of the variable that will be plotted along the color axis.
-            NOTE: Use a ColorBrewer color palette (e.g. from the `palettable` library).
-        title: str or None. Optional title that will appear at the top of the figure.
         '''
 
         headers = [ind_var, dep_var, c_var]    # get list of independent and dependent variables as headers
@@ -382,4 +369,98 @@ class Transformation(analysis.Analysis):
         plt.ylabel(dep_var) # set y label to dep_var
         bar = plt.colorbar()
         bar.set_label(c_var)
+    
+    '''***EXTENSION CODE***'''
+    def normalize_together_vector(self):
+        '''Normalize all variables in the projected dataset together by translating the global minimum
+        (across all variables) to zero and scaling the global range (across all variables) to one. This
+        funtion uses numpy vectorization and broadcasting
 
+        Returns:
+        -----------
+        ndarray. shape=(N, num_proj_vars). The normalized version of the projected dataset.
+        '''
+        headers = self.data.get_headers()
+
+        minArr = self.min(headers) # find global min
+        gMin = min(minArr)
+        maxArr = self.min(headers) # find global max
+        gMax = max(maxArr)
+        diff = gMax - gMin # find difference
+
+        tMag = -gMin
+        sMag = 1/diff
+
+        ogData = self.data.data
+
+        newData = tMag + ogData
+        newData = sMag * ogData
+
+        self.data = data.Data(headers=headers, data=newData, header2col=self.data.get_mappings())
+
+        return newData
+    
+    def normalize_seperately_vector(self): # TODO fix this
+        headers = self.data.get_headers() # get headers
+        min = self.min(headers) # find min of each variable column
+        max = self.max(headers) # find max of each variable coloumn
+        diff = 1/(max-min)
+
+        ogData = self.data.data
+
+        newData = ogData-min
+        newData = newData*diff
+
+
+        self.data = data.Data(headers=headers, data=newData, header2col=self.data.get_mappings())
+
+        return newData
+    
+    def normalize_zscore(self):
+
+        headers = self.data.get_headers()
+
+        meanArr = self.mean(headers)
+        print(meanArr)
+
+        stdArr = self.std(headers)
+        stdArr = 1/stdArr
+
+        ogData = self.data.data
+        
+        newData = ogData - meanArr
+        newData = newData * stdArr
+
+        return newData
+    
+        '''
+         def data_whiten(self, headers):
+
+        if len(headers) > 2:
+            raise Exception('Only two variables for data whitening')
+        #Center data first by subtracting mean
+        meanArr = self.mean(headers)
+        ogData = self.data.select_data(headers)
+
+        newData = np.array(ogData-meanArr)
+        
+        #calculate covariance matrix
+        covArr  = np.cov(newData,False)
+        print('Covariance matrix: \n', covArr, '\n')
+
+        #Calculate eigenvalues and eigenvectors
+        w,v = linalg.eig(covArr)
+        
+        print("Eigenvalues:\n", w.real.round(4), '\n')
+        print("Eigenvectors:\n", v, '\n')
+        
+        # calculate inverse square roots
+        diag = np.diag(1/(w**0.5))
+        diag = diag.real.round(4) # convert to real number and round
+        print("Diagonal matrix for inverse square root of Eigenvalues:\n", diag, '\n')
+
+        wpca = np.dot(np.dot(diagw, v.T), xc)
+
+        wzca = np.dot(np.dot(np.dot(v, diagw), v.T), xc)
+
+        return wpca, wzca'''
