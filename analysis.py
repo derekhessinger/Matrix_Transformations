@@ -53,8 +53,6 @@ class Analysis:
         NOTE: There should be no loops in this method!
         '''
 
-        minArr = [] # create an empty list to hold the data
-
         vData = self.data.select_data(headers, rows)    # use select_data to grab variable data
         minArr = np.amin(vData, axis=0)     # use amin to find the minimum value in each column
         minArr = np.array(minArr)       # turn the list into an np array
