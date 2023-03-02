@@ -207,8 +207,6 @@ class Transformation(analysis.Analysis):
         '''Normalize all variables in the projected dataset together by translating the global minimum
         (across all variables) to zero and scaling the global range (across all variables) to one.
 
-        You should normalize (update) the data stored in `self.data`.
-
         Returns:
         -----------
         ndarray. shape=(N, num_proj_vars). The normalized version of the projected dataset.
@@ -246,8 +244,6 @@ class Transformation(analysis.Analysis):
     def normalize_separately(self):
         '''Normalize each variable separately by translating its local minimum to zero and scaling
         its local range to one.
-
-        You should normalize (update) the data stored in `self.data`.
 
         Returns:
         -----------
@@ -388,79 +384,61 @@ class Transformation(analysis.Analysis):
         gMax = max(maxArr)
         diff = gMax - gMin # find difference
 
-        tMag = -gMin
-        sMag = 1/diff
+        tMag = -gMin    # create translation magnitude with negative global min
+        sMag = 1/diff   # create scale magnitude with 1/diff
 
-        ogData = self.data.data
+        ogData = self.data.data # create array of original data
 
-        newData = tMag + ogData
-        newData = sMag * ogData
+        newData = tMag + ogData # translate data
+        newData = sMag * ogData # scale data
 
-        self.data = data.Data(headers=headers, data=newData, header2col=self.data.get_mappings())
+        self.data = data.Data(headers=headers, data=newData, header2col=self.data.get_mappings())   # update data
 
         return newData
     
-    def normalize_seperately_vector(self): # TODO fix this
+    def normalize_seperately_vector(self):
+        '''Normalize each variable separately by translating its local minimum to zero and scaling
+        its local range to one. This function uses vectorization/broadcasting
+
+        Returns:
+        -----------
+        ndarray. shape=(N, num_proj_vars). The normalized version of the projected dataset.
+        '''
         headers = self.data.get_headers() # get headers
         min = self.min(headers) # find min of each variable column
         max = self.max(headers) # find max of each variable coloumn
-        diff = 1/(max-min)
+        diff = 1/(max-min)  # calculate difference
 
-        ogData = self.data.data
+        ogData = self.data.data  # create array of original data
 
-        newData = ogData-min
-        newData = newData*diff
+        newData = ogData-min    # translate data
+        newData = newData*diff  # scale data
 
 
-        self.data = data.Data(headers=headers, data=newData, header2col=self.data.get_mappings())
+        self.data = data.Data(headers=headers, data=newData, header2col=self.data.get_mappings())   # update data
 
         return newData
     
     def normalize_zscore(self):
+        '''Normalize each variable by calculating the z score for each variable.
 
-        headers = self.data.get_headers()
+        Returns:
+        -----------
+        ndarray. shape=(N, num_proj_vars). The normalized version of the projected dataset.
+        '''
 
-        meanArr = self.mean(headers)
-        print(meanArr)
+        headers = self.data.get_headers() # get headers
 
-        stdArr = self.std(headers)
-        stdArr = 1/stdArr
+        meanArr = self.mean(headers)    # create array of mean values for each column
 
-        ogData = self.data.data
+        stdArr = self.std(headers)  # create array of standard deviations for each column
+        stdArr = 1/stdArr   # make array 1/std for z score
+
+        ogData = self.data.data # create array of original data
         
-        newData = ogData - meanArr
-        newData = newData * stdArr
+        newData = ogData - meanArr  # translate data by mean
+        newData = newData * stdArr  # divide by standard deviation
+
+        self.data = data.Data(headers=headers, data=newData, header2col=self.data.get_mappings())   # update data
 
         return newData
-    
-        '''
-         def data_whiten(self, headers):
-
-        if len(headers) > 2:
-            raise Exception('Only two variables for data whitening')
-        #Center data first by subtracting mean
-        meanArr = self.mean(headers)
-        ogData = self.data.select_data(headers)
-
-        newData = np.array(ogData-meanArr)
-        
-        #calculate covariance matrix
-        covArr  = np.cov(newData,False)
-        print('Covariance matrix: \n', covArr, '\n')
-
-        #Calculate eigenvalues and eigenvectors
-        w,v = linalg.eig(covArr)
-        
-        print("Eigenvalues:\n", w.real.round(4), '\n')
-        print("Eigenvectors:\n", v, '\n')
-        
-        # calculate inverse square roots
-        diag = np.diag(1/(w**0.5))
-        diag = diag.real.round(4) # convert to real number and round
-        print("Diagonal matrix for inverse square root of Eigenvalues:\n", diag, '\n')
-
-        wpca = np.dot(np.dot(diagw, v.T), xc)
-
-        wzca = np.dot(np.dot(np.dot(v, diagw), v.T), xc)
-
-        return wpca, wzca'''
