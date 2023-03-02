@@ -396,7 +396,7 @@ class Transformation(analysis.Analysis):
 
         return newData
     
-    def normalize_seperately_vector(self):
+    def normalize_separately_vector(self):
         '''Normalize each variable separately by translating its local minimum to zero and scaling
         its local range to one. This function uses vectorization/broadcasting
 
